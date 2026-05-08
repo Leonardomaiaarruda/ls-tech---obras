@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Sábados - Leonardo Construções</title>
+    <style>
+        :root {
+            --success: #27ae60;
+            --primary: #2e7d32;
+            --light: #f4f7f6;
+            --dark: #2c3e50;
+        }
+
+        body { 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+            background: var(--light); 
+            padding: 15px; 
+            margin: 0;
+            color: #333;
+        }
+
+        .container { 
+            max-width: 850px; 
+            margin: auto; 
+            background: white; 
+            padding: 25px; 
+            border-radius: 16px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08); 
+        }
+
+        h2 { 
+            color: var(--success); 
+            text-align: center; 
+            margin-top: 0;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+
+        /* Resumo em Card */
+        .resumo { 
+            background: #e8f5e9; 
+            padding: 20px; 
+            border-radius: 12px; 
+            margin-bottom: 25px; 
+            border-left: 6px solid var(--success);
+            box-shadow: 0 2px 8px rgba(39, 174, 96, 0.1);
+        }
+
+        .resumo h4 { 
+            margin: 0 0 12px 0; 
+            color: var(--primary); 
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .contagem-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            font-size: 0.95rem;
+        }
+
+        .item-contagem {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #c8e6c9;
+        }
+
+        /* Tabela */
+        .table-wrapper { overflow-x: auto; }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 10px;
+            min-width: 500px;
+        }
+
+        th { 
+            text-align: left; 
+            background: #f8f9fa; 
+            padding: 15px; 
+            border-bottom: 2px solid #dee2e6;
+            color: #666;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+        }
+
+        td { 
+            padding: 14px 15px; 
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.95rem;
+        }
+
+        tr:nth-child(even) { background-color: #fafafa; }
+        tr:hover { background-color: #f1f8f1; }
+
+        .tag-obra { 
+            background: #e8f5e9; 
+            color: var(--primary); 
+            padding: 5px 10px; 
+            border-radius: 6px; 
+            font-size: 0.8rem; 
+            font-weight: bold; 
+            border: 1px solid #c8e6c9;
+            display: inline-block;
+        }
+
+        .btn-voltar { 
+            display: inline-block; 
+            margin-bottom: 20px; 
+            text-decoration: none; 
+            color: #777; 
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        #status-msg { text-align: center; padding: 40px; color: #888; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a href="index.html" class="btn-voltar">← Painel Principal</a>
+    <h2>Histórico de Sábados</h2>
+
+    <div id="resumo-equipe" class="resumo">
+        <h4>📊 Total de Presenças Extras:</h4>
+        <div id="contagem-lista" class="contagem-grid">Carregando resumo...</div>
+    </div>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Funcionário</th>
+                    <th>Obra / Local</th>
+                </tr>
+            </thead>
+            <tbody id="tabela-sabado">
+                <!-- Dados via JS -->
+            </tbody>
+        </table>
+        <div id="status-msg">Buscando registros...</div>
+    </div>
+</div>
+
+<script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxDYc3zZMgehcAwtVRbCUOqUjd4Ctem8i0W0f6iyFogFf02_Y9huXyiPNQInv1qSlUJ/exec";
+
+    async function carregarRelatorio() {
+        const tabela = document.getElementById('tabela-sabado');
+        const resumo = document.getElementById('contagem-lista');
+        const msg = document.getElementById('status-msg');
+
+        try {
+            const res = await fetch(API_URL + "?tipo=relatorioSabado");
+            const dados = await res.json();
+            msg.style.display = 'none';
+
+            if (!dados || dados.length === 0) {
+                tabela.innerHTML = "<tr><td colspan='3' style='text-align:center; padding: 30px;'>Nenhum registro de sábado encontrado.</td></tr>";
+                resumo.innerText = "Sem dados para exibir.";
+                return;
+            }
+
+            // Inverter para mostrar os mais recentes primeiro
+            dados.sort((a, b) => new Date(b.data) - new Date(a.data));
+
+            // Cálculo da contagem para o resumo
+            const contagem = {};
+            dados.forEach(d => {
+                contagem[d.nome] = (contagem[d.nome] || 0) + 1;
+            });
+
+            // Exibe o resumo em grid formatado
+            resumo.innerHTML = Object.entries(contagem)
+                .map(([nome, total]) => `
+                    <div class="item-contagem">
+                        <strong>${nome}</strong>: ${total} ${total === 1 ? 'dia' : 'dias'}
+                    </div>
+                `).join('');
+
+            // Preenche a tabela
+            tabela.innerHTML = dados.map(d => {
+                let dataBR = "Data inválida";
+                if (d.data) {
+                    const dataObj = new Date(d.data);
+                    dataBR = dataObj.toLocaleDateString('pt-BR', {timeZone: 'UTC'});
+                }
+                
+                return `
+                    <tr>
+                        <td><b>${dataBR}</b></td>
+                        <td>${d.nome}</td>
+                        <td><span class="tag-obra">${d.obra || 'Frente Geral'}</span></td>
+                    </tr>
+                `;
+            }).join('');
+
+        } catch (e) {
+            msg.innerText = "Erro ao conectar com o banco de dados.";
+            msg.style.color = "red";
+        }
+    }
+
+    carregarRelatorio();
+</script>
+</body>
+</html>

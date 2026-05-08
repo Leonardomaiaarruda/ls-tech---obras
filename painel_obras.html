@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel de Obras - Leonardo Construções</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        :root {
+            --primary: #27ae60;
+            --dark: #2c3e50;
+            --bg: #f4f7f6;
+        }
+
+        body { 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+            background: var(--bg); 
+            padding: 15px; 
+            color: #333; 
+            margin: 0;
+        }
+
+        .container { max-width: 500px; margin: auto; }
+        
+        /* Seção de Cadastro - Estilizada como Card */
+        .secao-cadastro { 
+            background: #fff; 
+            padding: 20px; 
+            border-radius: 15px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-top: 5px solid var(--primary);
+        }
+
+        .secao-cadastro input { 
+            flex-grow: 1; 
+            padding: 12px; 
+            border: 2px solid #eee; 
+            border-radius: 8px; 
+            font-size: 16px;
+        }
+
+        .secao-cadastro button { 
+            padding: 12px 20px; 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold;
+        }
+
+        /* Lista de Obras */
+        .grid-obras { display: grid; grid-template-columns: 1fr; gap: 12px; }
+
+        .btn-obra { 
+            background: #fff; 
+            border: none; 
+            padding: 22px; 
+            border-radius: 12px; 
+            font-size: 18px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            color: var(--dark);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-obra:active { background: #f0f0f0; transform: scale(0.98); }
+        .btn-obra::after { content: '→'; color: var(--primary); font-size: 20px; }
+        
+        /* Tela de Detalhes da Equipe */
+        .detalhes { 
+            display: none; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 15px; 
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12); 
+            min-height: 60vh;
+        }
+
+        .func-item { 
+            padding: 15px; 
+            border-bottom: 1px solid #f0f0f0; 
+            font-weight: 500; 
+            color: #444; 
+            display: flex; 
+            align-items: center; 
+            font-size: 1.1rem;
+        }
+
+        .func-item:last-child { border-bottom: none; }
+
+        .btn-voltar-link { 
+            display: inline-block; 
+            margin-bottom: 20px; 
+            text-decoration: none; 
+            color: #666; 
+            font-weight: bold; 
+            font-size: 0.9rem;
+        }
+
+        .btn-voltar-tela {
+            background: #eee;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+
+        #status-msg { text-align: center; color: #888; padding: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a href="index.html" class="btn-voltar-link">← Painel Principal</a>
+
+    <!-- Área de Cadastro: Só aparece para quem for ADM -->
+    <div id="area-admin" class="secao-cadastro" style="display: none;">
+        <h4 style="margin: 0 0 15px 0; color: var(--dark);">Nova Frente de Trabalho</h4>
+        <div style="display: flex; gap: 8px;">
+            <input type="text" id="input-nova-obra" placeholder="Ex: Residencial Alvorada">
+            <button id="btn-salvar-obra" onclick="cadastrarObra()">Salvar</button>
+        </div>
+    </div>
+
+    <!-- Tela Principal: Menu de Obras -->
+    <div id="tela-menu">
+        <h2 style="margin-bottom: 20px;">Equipes Ativas</h2>
+        <div id="grid-obras" class="grid-obras">
+            <p id="status-msg">Carregando obras...</p>
+        </div>
+    </div>
+
+    <!-- Tela de Detalhes: Funcionários na Obra -->
+    <div id="tela-detalhes" class="detalhes">
+        <button class="btn-voltar-tela" onclick="voltar()">← Voltar</button>
+        <h2 id="titulo-obra" style="color: var(--primary); margin: 0 0 20px 0; border-bottom: 2px solid #eee; padding-bottom: 10px;"></h2>
+        <div id="lista-equipe"></div>
+    </div>
+</div>
+
+<script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxDYc3zZMgehcAwtVRbCUOqUjd4Ctem8i0W0f6iyFogFf02_Y9huXyiPNQInv1qSlUJ/exec";
+    
+    // Controle de Acesso: Apenas ADM pode cadastrar obras
+    const perfil = localStorage.getItem('perfil');
+    if (perfil === 'admin') {
+        document.getElementById('area-admin').style.display = 'block';
+    }
+
+    async function carregarObras() {
+        const grid = document.getElementById('grid-obras');
+        try {
+            const res = await fetch(API_URL + "?tipo=obras");
+            const obras = await res.json();
+            
+            if (obras.length === 0) {
+                grid.innerHTML = "<p id='status-msg'>Nenhuma obra ativa no momento.</p>";
+                return;
+            }
+
+            grid.innerHTML = obras.map(o => 
+                `<button class="btn-obra" onclick="verEquipe('${o}')">${o}</button>`
+            ).join('');
+        } catch (e) {
+            grid.innerHTML = "<p id='status-msg' style='color:red;'>Erro ao carregar. Verifique a conexão.</p>";
+        }
+    }
+
+    async function cadastrarObra() {
+        const input = document.getElementById('input-nova-obra');
+        const btn = document.getElementById('btn-salvar-obra');
+        const nome = input.value.trim();
+
+        if (!nome) return alert("Por favor, digite o nome da obra.");
+
+        btn.disabled = true;
+        btn.innerText = "...";
+
+        try {
+            await fetch(API_URL, {
+                method: "POST",
+                mode: "no-cors",
+                body: JSON.stringify({
+                    sistema: 'criar_obra',
+                    nomeObra: nome
+                })
+            });
+            input.value = "";
+            alert("Obra cadastrada!");
+            carregarObras(); 
+        } catch (e) {
+            alert("Erro ao salvar.");
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Salvar";
+        }
+    }
+
+    async function verEquipe(obra) {
+        document.getElementById('tela-menu').style.display = 'none';
+        document.getElementById('area-admin').style.display = 'none';
+        
+        const tela = document.getElementById('tela-detalhes');
+        const lista = document.getElementById('lista-equipe');
+        
+        tela.style.display = 'block';
+        document.getElementById('titulo-obra').innerText = obra;
+        lista.innerHTML = "<p id='status-msg'>Buscando funcionários...</p>";
+
+        try {
+            const res = await fetch(`${API_URL}?tipo=verEquipe&obra=${encodeURIComponent(obra)}`);
+            const equipe = await res.json();
+
+            lista.innerHTML = equipe.length > 0 
+                ? equipe.map(nome => `<div class="func-item">👷 ${nome}</div>`).join('') 
+                : "<p id='status-msg'>Nenhum funcionário alocado aqui.</p>";
+        } catch (e) {
+            lista.innerHTML = "<p id='status-msg' style='color:red;'>Erro ao carregar equipe.</p>";
+        }
+    }
+
+    function voltar() {
+        document.getElementById('tela-detalhes').style.display = 'none';
+        document.getElementById('tela-menu').style.display = 'block';
+        if (perfil === 'admin') {
+            document.getElementById('area-admin').style.display = 'block';
+        }
+    }
+
+    carregarObras();
+</script>
+</body>
+</html>

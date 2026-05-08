@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Presença de Sábado - Leonardo Construções</title>
+    <style>
+        :root {
+            --success: #27ae60;
+            --dark: #2c3e50;
+            --light: #f4f7f6;
+            --border: #ddd;
+        }
+
+        body { 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+            background: var(--light); 
+            margin: 0; 
+            display: flex; 
+            justify-content: center; 
+            padding: 15px; 
+        }
+
+        .box { 
+            background: #fff; 
+            padding: 25px 20px; 
+            border-radius: 20px; 
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1); 
+            width: 100%; 
+            max-width: 500px; 
+            box-sizing: border-box;
+        }
+
+        h2 { color: var(--success); text-align: center; margin-top: 0; margin-bottom: 5px; font-size: 1.6rem; }
+        .sub-title { text-align: center; color: #666; font-size: 14px; margin-bottom: 25px; }
+
+        label { font-weight: 600; color: var(--dark); display: block; margin-bottom: 8px; font-size: 0.9rem; }
+
+        input[type="date"] { 
+            width: 100%; 
+            padding: 15px; 
+            border: 2px solid var(--border); 
+            border-radius: 12px; 
+            font-size: 16px; 
+            margin-bottom: 25px; 
+            box-sizing: border-box;
+            background: #fff;
+            color: var(--dark);
+        }
+
+        /* Lista de Funcionários Otimizada */
+        .lista-equipe { 
+            border: 2px solid #f0f0f0; 
+            border-radius: 12px; 
+            background: #fff;
+            margin-bottom: 25px;
+            max-height: 350px; 
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch; 
+        }
+
+        .item-func { 
+            display: flex; 
+            align-items: center; 
+            padding: 16px; 
+            border-bottom: 1px solid #f0f0f0; 
+            cursor: pointer;
+            transition: background 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .item-func:last-child { border-bottom: none; }
+        .item-func:active { background: #f1f8f1; }
+
+        input[type="checkbox"] { 
+            width: 26px; 
+            height: 26px; 
+            margin-right: 15px; 
+            cursor: pointer; 
+            accent-color: var(--success);
+            flex-shrink: 0;
+        }
+
+        .nome-func { font-size: 16px; color: var(--dark); font-weight: 500; flex-grow: 1; }
+
+        /* Botão Principal */
+        button { 
+            width: 100%; 
+            padding: 18px; 
+            background: var(--success); 
+            color: white; 
+            border: none; 
+            border-radius: 14px; 
+            font-size: 18px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            box-shadow: 0 6px 15px rgba(39, 174, 96, 0.3);
+            transition: all 0.2s;
+        }
+
+        button:active { transform: scale(0.97); opacity: 0.9; }
+        button:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
+
+        .btn-voltar { 
+            display: block; 
+            text-align: center; 
+            margin-top: 20px; 
+            text-decoration: none; 
+            color: #888; 
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 5px;
+        }
+
+        #msg { text-align: center; font-weight: bold; margin-top: 15px; min-height: 20px; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <a href="index.html" class="btn-voltar">← Painel Principal</a>
+    <h2>Presença de Sábado</h2>
+    <div class="sub-title">Selecione quem compareceu ao dia extra</div>
+    
+    <label>Data do Trabalho:</label>
+    <input type="date" id="data-sabado">
+
+    <label>Equipe Presente:</label>
+    <div class="lista-equipe" id="func-list">
+        <p style="padding: 20px; text-align: center; color: #999;">Carregando funcionários...</p>
+    </div>
+
+    <button id="btn-confirmar" onclick="salvarPresenca()">Confirmar Presença</button>
+    <p id="msg"></p>
+</div>
+
+<script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxDYc3zZMgehcAwtVRbCUOqUjd4Ctem8i0W0f6iyFogFf02_Y9huXyiPNQInv1qSlUJ/exec";
+
+    // Pega data local corretamente
+    const hoje = new Date();
+    const dataLocal = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0');
+    document.getElementById('data-sabado').value = dataLocal;
+
+    async function carregarFuncionarios() {
+        try {
+            // Usando a mesma rota de faltas para listar os nomes
+            const res = await fetch(API_URL + "?tipo=faltas"); 
+            const funcs = await res.json();
+            
+            const listaDiv = document.getElementById('func-list');
+            
+            if (!funcs || funcs.length === 0) {
+                listaDiv.innerHTML = "<p style='padding:20px; text-align:center;'>Nenhum funcionário encontrado.</p>";
+                return;
+            }
+
+            listaDiv.innerHTML = funcs.map(f => `
+                <div class="item-func" onclick="toggleCheckbox('${f.name}')">
+                    <input type="checkbox" id="${f.name}" value="${f.name}" onclick="event.stopPropagation()">
+                    <span class="nome-func">${f.name}</span>
+                </div>
+            `).join('');
+        } catch (e) {
+            document.getElementById('msg').innerHTML = "<span style='color:red;'>Erro ao carregar lista.</span>";
+        }
+    }
+
+    function toggleCheckbox(id) {
+        const cb = document.getElementById(id);
+        if(cb) cb.checked = !cb.checked;
+    }
+
+    async function salvarPresenca() {
+        const btn = document.getElementById('btn-confirmar');
+        const msg = document.getElementById('msg');
+        const dataInput = document.getElementById('data-sabado').value;
+        const selecionados = Array.from(document.querySelectorAll('input:checked')).map(i => i.value);
+        const autorLogado = localStorage.getItem('nomeUsuario') || "Não identificado";
+
+        if (selecionados.length === 0) {
+            alert("Por favor, selecione ao menos um funcionário.");
+            return;
+        }
+
+        if (!confirm(`Confirmar presença de ${selecionados.length} funcionário(s) para o dia ${dataInput.split('-').reverse().join('/')}?`)) return;
+
+        btn.disabled = true;
+        btn.innerText = "Registrando...";
+        msg.innerText = "";
+
+        try {
+            await fetch(API_URL, {
+                method: "POST",
+                mode: "no-cors", // Crucial para evitar erros de CORS com Apps Script em alguns navegadores
+                body: JSON.stringify({
+                    sistema: 'presenca_sabado',
+                    dataUsuario: dataInput.split('-').reverse().join('/'),
+                    presentes: selecionados,
+                    autor: autorLogado
+                })
+            });
+            
+            msg.style.color = "var(--success)";
+            msg.innerText = "Sucesso! Registrado na planilha.";
+            
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+
+        } catch (e) { 
+            alert("Erro ao registrar no servidor."); 
+            btn.disabled = false;
+            btn.innerText = "Confirmar Presença";
+        }
+    }
+
+    carregarFuncionarios();
+</script>
+</body>
+</html>

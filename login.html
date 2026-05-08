@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Login - Leonardo Construções</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --dark: #2c3e50;
+        }
+
+        body { 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+            background: var(--dark); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+        }
+
+        .login-box { 
+            background: white; 
+            padding: 40px 30px; 
+            border-radius: 20px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4); 
+            text-align: center; 
+            width: 90%; 
+            max-width: 350px; 
+            box-sizing: border-box;
+        }
+
+        h2 { 
+            margin-top: 0; 
+            color: var(--dark); 
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+        }
+
+        /* Otimizado para input de código numérico no celular */
+        input { 
+            width: 100%; 
+            padding: 15px; 
+            margin-bottom: 20px; 
+            border: 2px solid #eee; 
+            border-radius: 12px; 
+            box-sizing: border-box; 
+            font-size: 22px; 
+            text-align: center; 
+            letter-spacing: 5px;
+            font-weight: bold;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+
+        button { 
+            width: 100%; 
+            padding: 16px; 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            font-size: 1.1rem;
+            box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
+            transition: all 0.2s;
+        }
+
+        button:active { transform: scale(0.98); opacity: 0.9; }
+        button:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
+
+        #erro { 
+            color: #d32f2f; 
+            font-weight: bold; 
+            margin-top: 15px; 
+            font-size: 0.9rem;
+            min-height: 20px;
+        }
+
+        .loader {
+            display: none;
+            margin: 10px auto;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h2>Acesso ao Sistema</h2>
+        
+        <!-- inputmode="numeric" força o teclado de números no celular -->
+        <input type="password" id="codigo" placeholder="••••" inputmode="numeric" autocomplete="one-time-code">
+        
+        <button id="btn-entrar" onclick="logar()">Entrar</button>
+        
+        <div id="loader" class="loader"></div>
+        <p id="erro"></p>
+        
+        <p style="font-size: 11px; color: #aaa; margin-top: 30px;">
+            SISTEMA INTEGRADO CONSTRUTORA
+        </p>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbxDYc3zZMgehcAwtVRbCUOqUjd4Ctem8i0W0f6iyFogFf02_Y9huXyiPNQInv1qSlUJ/exec";
+
+        // Permite dar 'Enter' no teclado para logar
+        document.getElementById('codigo').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') { logar(); }
+        });
+
+        async function logar() {
+            const codigoField = document.getElementById('codigo');
+            const btn = document.getElementById('btn-entrar');
+            const erroMsg = document.getElementById('erro');
+            const loader = document.getElementById('loader');
+            
+            const codigo = codigoField.value;
+
+            if (!codigo) {
+                erroMsg.innerText = "Digite o código!";
+                return;
+            }
+
+            // Interface de carregamento
+            btn.disabled = true;
+            btn.innerText = "Validando...";
+            loader.style.display = "block";
+            erroMsg.innerText = "";
+
+            try {
+                const res = await fetch(`${API_URL}?tipo=login&codigo=${codigo}`);
+                const data = await res.json();
+
+                if (data.perfil !== 'negado') {
+                    localStorage.setItem('perfil', data.perfil);
+                    localStorage.setItem('nomeUsuario', data.nome);
+                    window.location.href = "index.html";
+                } else {
+                    erroMsg.innerText = "Código inválido!";
+                    btn.disabled = false;
+                    btn.innerText = "Entrar";
+                    loader.style.display = "none";
+                    codigoField.value = "";
+                }
+            } catch (e) {
+                erroMsg.innerText = "Erro de conexão. Tente novamente.";
+                btn.disabled = false;
+                btn.innerText = "Entrar";
+                loader.style.display = "none";
+            }
+        }
+    </script>
+</body>
+</html>

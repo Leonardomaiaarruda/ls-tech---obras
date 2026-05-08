@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizar Equipes - Leonardo Construções</title>
+    <style>
+        :root {
+            --primary: #2e7d32;
+            --success: #27ae60;
+            --dark: #2c3e50;
+            --light: #f4f7f6;
+        }
+
+        body { 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+            background: var(--light); 
+            padding: 15px; 
+            margin: 0;
+            color: #333;
+        }
+
+        .container { 
+            background: white; 
+            max-width: 480px; 
+            margin: auto; 
+            padding: 25px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+        }
+
+        h2 { 
+            color: var(--primary); 
+            text-align: center; 
+            margin-top: 0;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        .instruction {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        select { 
+            width: 100%; 
+            padding: 15px; 
+            border-radius: 12px; 
+            border: 2px solid #eee; 
+            font-size: 16px; 
+            background-color: #fff;
+            color: var(--dark);
+            cursor: pointer;
+            transition: border-color 0.3s;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 15px;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--success);
+        }
+
+        .lista-equipe { 
+            margin-top: 25px; 
+            min-height: 100px;
+        }
+
+        .card-func { 
+            background: #fff; 
+            padding: 15px; 
+            margin-bottom: 10px; 
+            border-left: 6px solid var(--success); 
+            border-radius: 8px; 
+            font-weight: 600; 
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .btn-voltar { 
+            display: inline-block;
+            text-decoration: none; 
+            color: #888; 
+            font-weight: bold; 
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .loading {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 30px 10px;
+            border: 2px dashed #eee;
+            border-radius: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a href="index.html" class="btn-voltar">← Painel Principal</a>
+    <h2>Equipe por Obra</h2>
+    
+    <div class="instruction">Selecione o local para ver quem está trabalhando:</div>
+    
+    <select id="obra-select" onchange="carregarEquipe()">
+        <option>Carregando obras...</option>
+    </select>
+
+    <div id="lista" class="lista-equipe">
+        <div class="empty-state">Aguardando seleção...</div>
+    </div>
+</div>
+
+<script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxDYc3zZMgehcAwtVRbCUOqUjd4Ctem8i0W0f6iyFogFf02_Y9huXyiPNQInv1qSlUJ/exec";
+
+    async function carregarObras() {
+        try {
+            const res = await fetch(API_URL + "?tipo=obras");
+            const obras = await res.json();
+            document.getElementById('obra-select').innerHTML = 
+                '<option value="">-- Selecione a Obra --</option>' + 
+                obras.map(o => `<option value="${o}">${o}</option>`).join('');
+        } catch (e) {
+            document.getElementById('obra-select').innerHTML = '<option>Erro ao carregar obras</option>';
+        }
+    }
+
+    async function carregarEquipe() {
+        const obra = document.getElementById('obra-select').value;
+        const listaDiv = document.getElementById('lista');
+        
+        if (!obra) {
+            listaDiv.innerHTML = '<div class="empty-state">Aguardando seleção...</div>';
+            return;
+        }
+        
+        listaDiv.innerHTML = '<div class="loading">Buscando colaboradores...</div>';
+        
+        try {
+            const res = await fetch(`${API_URL}?tipo=verEquipe&obra=${encodeURIComponent(obra)}`);
+            const equipe = await res.json();
+
+            if (equipe.length > 0) {
+                listaDiv.innerHTML = equipe.map(nome => `
+                    <div class="card-func">
+                        <span style="font-size: 1.2rem;">👷</span> 
+                        <span>${nome}</span>
+                    </div>
+                `).join('');
+            } else {
+                listaDiv.innerHTML = '<div class="empty-state">Nenhum funcionário alocado nesta obra.</div>';
+            }
+        } catch (e) {
+            listaDiv.innerHTML = '<div class="empty-state" style="color: red;">Erro ao carregar equipe. Verifique sua conexão.</div>';
+        }
+    }
+
+    carregarObras();
+</script>
+
+</body>
+</html>
