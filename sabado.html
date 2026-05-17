@@ -62,7 +62,7 @@
         .item-func { 
             display: flex; 
             align-items: center; 
-            padding: 16px; 
+            padding: 12px 16px; 
             border-bottom: 1px solid #f0f0f0; 
             cursor: pointer;
             transition: background 0.2s;
@@ -78,6 +78,18 @@
             margin-right: 15px; 
             cursor: pointer; 
             accent-color: var(--success);
+            flex-shrink: 0;
+        }
+
+        /* ESTILO DA FOTO DO FUNCIONÁRIO */
+        .avatar-func {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 15px;
+            border: 2px solid #eee;
+            background: #f9f9f9;
             flex-shrink: 0;
         }
 
@@ -144,7 +156,6 @@
 
     async function carregarFuncionarios() {
         try {
-            // Usando a mesma rota de faltas para listar os nomes
             const res = await fetch(API_URL + "?tipo=faltas"); 
             const funcs = await res.json();
             
@@ -155,9 +166,11 @@
                 return;
             }
 
+            // Mapeamento alterado para incluir a tag <img> com a foto vinda do servidor
             listaDiv.innerHTML = funcs.map(f => `
                 <div class="item-func" onclick="toggleCheckbox('${f.name}')">
                     <input type="checkbox" id="${f.name}" value="${f.name}" onclick="event.stopPropagation()">
+                    <img src="${f.foto}" class="avatar-func" alt="Foto de ${f.name}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
                     <span class="nome-func">${f.name}</span>
                 </div>
             `).join('');
@@ -192,7 +205,10 @@
         try {
             await fetch(API_URL, {
                 method: "POST",
-                mode: "no-cors", // Crucial para evitar erros de CORS com Apps Script em alguns navegadores
+                mode: "no-cors",
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8"
+                },
                 body: JSON.stringify({
                     sistema: 'presenca_sabado',
                     dataUsuario: dataInput.split('-').reverse().join('/'),

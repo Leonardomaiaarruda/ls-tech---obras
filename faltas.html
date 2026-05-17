@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Registro de Faltas - Obras</title>
+    <title>Registro de Faltas - Leonardo Construções</title>
     <style>
         :root {
             --danger: #d32f2f;
             --dark: #2c3e50;
             --light: #f4f7f6;
             --selected: #fff1f0;
+            --border: #eee;
         }
 
         body { 
@@ -47,13 +48,13 @@
             color: #333;
         }
 
-        /* CONFIGURAÇÃO DO SCROLL INTERNO */
+        /* CONFIGURAÇÃO DA LISTA COM FOTOS */
         .lista-equipe { 
-            border: 2px solid #eee; 
+            border: 2px solid var(--border); 
             border-radius: 12px; 
             background: #fafafa;
             margin-bottom: 20px;
-            max-height: 350px; 
+            max-height: 380px; 
             overflow-y: auto; 
             -webkit-overflow-scrolling: touch; 
         }
@@ -61,23 +62,38 @@
         .item-func { 
             display: flex; 
             align-items: center; 
-            padding: 14px 15px; 
-            border-bottom: 1px solid #eee; 
+            padding: 12px 15px; 
+            border-bottom: 1px solid var(--border); 
             transition: background 0.2s;
             -webkit-tap-highlight-color: transparent;
+            cursor: pointer;
         }
 
-        /* Cor de destaque quando o checkbox estiver marcado */
         .item-func.selecionado {
             background-color: var(--selected);
         }
 
         .item-func:last-child { border-bottom: none; }
 
+        /* ESTILO DA FOTO DE PERFIL */
+        .foto-perfil {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 15px;
+            border: 2px solid #ddd;
+            background-color: #eee;
+        }
+
+        .item-func.selecionado .foto-perfil {
+            border-color: var(--danger);
+        }
+
         input[type="checkbox"] { 
-            width: 24px; 
-            height: 24px; 
-            margin-right: 15px; 
+            width: 22px; 
+            height: 22px; 
+            margin-right: 10px; 
             accent-color: var(--danger);
             cursor: pointer;
         }
@@ -87,7 +103,6 @@
             color: #333; 
             font-weight: 500;
             flex-grow: 1;
-            cursor: pointer;
             user-select: none;
         }
 
@@ -102,7 +117,7 @@
             font-weight: bold; 
             cursor: pointer; 
             box-shadow: 0 4px 12px rgba(211, 47, 47, 0.2);
-            transition: opacity 0.3s;
+            transition: 0.3s;
         }
 
         button:active { transform: scale(0.98); }
@@ -150,7 +165,6 @@
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxDYc3zZMgehcAwtVRbCUOqUjd4Ctem8i0W0f6iyFogFf02_Y9huXyiPNQInv1qSlUJ/exec";
 
-    // Define data de hoje e exibe autor
     document.getElementById('data-falta').value = new Date().toISOString().split('T')[0];
     const autorLogado = localStorage.getItem('nomeUsuario') || "Não identificado";
     document.getElementById('exibe-autor').innerText = "Por: " + autorLogado;
@@ -163,6 +177,7 @@
             
             listaDiv.innerHTML = funcs.map(f => `
                 <div class="item-func" id="row-${f.name}" onclick="toggleCheckbox('${f.name}')">
+                    <img src="${f.foto || 'https://via.placeholder.com/45?text=...'}" class="foto-perfil" alt="Foto de ${f.name}">
                     <input type="checkbox" id="${f.name}" value="${f.name}" onclick="event.stopPropagation(); atualizarEstilo(this)">
                     <span class="nome-func">${f.name}</span>
                 </div>
@@ -173,14 +188,14 @@
         }
     }
 
-    // Função para marcar/desmarcar ao tocar na linha
     function toggleCheckbox(id) {
         const cb = document.getElementById(id);
-        cb.checked = !cb.checked;
-        atualizarEstilo(cb);
+        if (cb) {
+            cb.checked = !cb.checked;
+            atualizarEstilo(cb);
+        }
     }
 
-    // Muda a cor da linha para dar feedback visual
     function atualizarEstilo(checkbox) {
         const row = document.getElementById('row-' + checkbox.id);
         if (checkbox.checked) {
@@ -206,7 +221,7 @@
         try {
             await fetch(API_URL, {
                 method: "POST",
-                mode: "no-cors", // Necessário para Google Apps Script dependendo da config
+                mode: "no-cors",
                 body: JSON.stringify({
                     sistema: 'faltas',
                     dataUsuario: dataInput.split('-').reverse().join('/'),

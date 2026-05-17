@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Relatório de Sábados - Leonardo Construções</title>
     <style>
         :root {
@@ -35,6 +35,65 @@
             margin-top: 0;
             padding-bottom: 15px;
             border-bottom: 2px solid #eee;
+            margin-bottom: 20px;
+        }
+
+        /* Seção de Filtros por Data */
+        .filtro-container {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+        }
+
+        .campo-filtro {
+            flex: 1;
+            min-width: 160px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .campo-filtro label {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .campo-filtro input {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .campo-filtro input:focus {
+            border-color: var(--success);
+        }
+
+        .btn-filtrar {
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 11px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: background 0.2s;
+            min-width: 120px;
+        }
+
+        .btn-filtrar:hover {
+            background: #219653;
         }
 
         /* Resumo em Card */
@@ -56,18 +115,49 @@
             gap: 8px;
         }
 
+        /* Grid corrigido e ativo */
         .contagem-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 10px;
+            gap: 12px;
             font-size: 0.95rem;
         }
 
         .item-contagem {
             background: white;
-            padding: 8px 12px;
-            border-radius: 6px;
+            padding: 10px 12px;
+            border-radius: 8px;
             border: 1px solid #c8e6c9;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* ESTILO DOS AVATARES */
+        .foto-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid #c8e6c9;
+            background: #fafafa;
+            flex-shrink: 0;
+        }
+
+        .foto-lista {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #eee;
+            background: #fafafa;
+            flex-shrink: 0;
+        }
+
+        .col-func {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
         /* Tabela */
@@ -91,9 +181,10 @@
         }
 
         td { 
-            padding: 14px 15px; 
+            padding: 10px 15px; 
             border-bottom: 1px solid #f0f0f0;
             font-size: 0.95rem;
+            vertical-align: middle;
         }
 
         tr:nth-child(even) { background-color: #fafafa; }
@@ -104,7 +195,7 @@
             color: var(--primary); 
             padding: 5px 10px; 
             border-radius: 6px; 
-            font-size: 0.8rem; 
+            font-size: 0.8gram; 
             font-weight: bold; 
             border: 1px solid #c8e6c9;
             display: inline-block;
@@ -120,6 +211,7 @@
         }
 
         #status-msg { text-align: center; padding: 40px; color: #888; }
+        .contagem-grid{display: none;}
     </style>
 </head>
 <body>
@@ -127,6 +219,19 @@
 <div class="container">
     <a href="index.html" class="btn-voltar">← Painel Principal</a>
     <h2>Histórico de Sábados</h2>
+
+    <!-- Interface dos Filtros -->
+    <div class="filtro-container">
+        <div class="campo-filtro">
+            <label for="dataInicio">Data Inicial:</label>
+            <input type="date" id="dataInicio">
+        </div>
+        <div class="campo-filtro">
+            <label for="dataFim">Data Final:</label>
+            <input type="date" id="dataFim">
+        </div>
+        <button class="btn-filtrar" onclick="carregarRelatorio()">Filtrar</button>
+    </div>
 
     <div id="resumo-equipe" class="resumo">
         <h4>📊 Total de Presenças Extras:</h4>
@@ -158,13 +263,28 @@
         const resumo = document.getElementById('contagem-lista');
         const msg = document.getElementById('status-msg');
 
+        // Captura os valores digitados nos inputs de data
+        const dataInicio = document.getElementById('dataInicio').value;
+        const dataFim = document.getElementById('dataFim').value;
+
+        // Reseta os estados visuais enquanto busca novos dados filtrados
+        tabela.innerHTML = "";
+        resumo.innerText = "Atualizando resumo...";
+        msg.style.display = 'block';
+        msg.innerText = "Buscando registros...";
+
         try {
-            const res = await fetch(API_URL + "?tipo=relatorioSabado");
+            // Constrói a URL passando os parâmetros se eles estiverem preenchidos
+            let urlCompleta = `${API_URL}?tipo=relatorioSabado`;
+            if (dataInicio) urlCompleta += `&dataInicio=${dataInicio}`;
+            if (dataFim) urlCompleta += `&dataFim=${dataFim}`;
+
+            const res = await fetch(urlCompleta);
             const dados = await res.json();
             msg.style.display = 'none';
 
             if (!dados || dados.length === 0) {
-                tabela.innerHTML = "<tr><td colspan='3' style='text-align:center; padding: 30px;'>Nenhum registro de sábado encontrado.</td></tr>";
+                tabela.innerHTML = "<tr><td colspan='3' style='text-align:center; padding: 30px;'>Nenhum registro de sábado encontrado para o período selecionado.</td></tr>";
                 resumo.innerText = "Sem dados para exibir.";
                 return;
             }
@@ -172,21 +292,28 @@
             // Inverter para mostrar os mais recentes primeiro
             dados.sort((a, b) => new Date(b.data) - new Date(a.data));
 
-            // Cálculo da contagem para o resumo
+            // Cálculo do resumo acumulado por funcionário mantendo as fotos vinculadas
             const contagem = {};
             dados.forEach(d => {
-                contagem[d.nome] = (contagem[d.nome] || 0) + 1;
+                if (!contagem[d.nome]) {
+                    contagem[d.nome] = { total: 0, foto: d.foto };
+                }
+                contagem[d.nome].total += 1;
             });
 
-            // Exibe o resumo em grid formatado
+            // Exibe o painel superior com micro-fotos e totais atualizados conforme o filtro
             resumo.innerHTML = Object.entries(contagem)
-                .map(([nome, total]) => `
+                .map(([nome, info]) => `
                     <div class="item-contagem">
-                        <strong>${nome}</strong>: ${total} ${total === 1 ? 'dia' : 'dias'}
+                        <img src="${info.foto}" class="foto-avatar" alt="Mini foto" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
+                        <div>
+                            <strong>${nome}</strong>
+                            <div style="font-size: 12px; color: #666;">${info.total} ${info.total === 1 ? 'dia' : 'dias'}</div>
+                        </div>
                     </div>
                 `).join('');
 
-            // Preenche a tabela
+            // Preenche as linhas da tabela principal
             tabela.innerHTML = dados.map(d => {
                 let dataBR = "Data inválida";
                 if (d.data) {
@@ -197,7 +324,12 @@
                 return `
                     <tr>
                         <td><b>${dataBR}</b></td>
-                        <td>${d.nome}</td>
+                        <td>
+                            <div class="col-func">
+                                <img src="${d.foto}" class="foto-lista" alt="Foto de ${d.nome}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
+                                <span>${d.nome}</span>
+                            </div>
+                        </td>
                         <td><span class="tag-obra">${d.obra || 'Frente Geral'}</span></td>
                     </tr>
                 `;
@@ -206,9 +338,12 @@
         } catch (e) {
             msg.innerText = "Erro ao conectar com o banco de dados.";
             msg.style.color = "red";
+            resumo.innerText = "Erro ao carregar dados.";
+            console.error(e);
         }
     }
 
+    // Executa uma primeira busca completa ao abrir a tela
     carregarRelatorio();
 </script>
 </body>

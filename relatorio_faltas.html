@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Relatório Geral de Faltas - Leonardo Construções</title>
     <style>
         :root {
@@ -35,9 +35,67 @@
             margin-top: 0;
             padding-bottom: 15px;
             border-bottom: 2px solid #eee;
+            margin-bottom: 20px;
         }
 
-        /* Contador de Faltas Estilizado */
+        /* Área de Filtros */
+        .filtro-container {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+        }
+
+        .campo-filtro {
+            flex: 1;
+            min-width: 160px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .campo-filtro label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .campo-filtro input {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .campo-filtro input:focus {
+            border-color: var(--primary);
+        }
+
+        .btn-filtrar {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 11px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: background 0.2s;
+            min-width: 120px;
+        }
+
+        .btn-filtrar:hover {
+            background: #1565c0;
+        }
+
         .contador { 
             background: var(--danger); 
             color: white; 
@@ -50,14 +108,13 @@
             box-shadow: 0 4px 10px rgba(211, 47, 47, 0.2);
         }
 
-        /* Tabela Responsiva */
         .table-wrapper { overflow-x: auto; }
 
         table { 
             width: 100%; 
             border-collapse: collapse; 
             margin-top: 10px; 
-            min-width: 500px;
+            min-width: 550px;
         }
 
         th { 
@@ -71,15 +128,31 @@
         }
 
         td { 
-            padding: 14px 15px; 
+            padding: 10px 15px; 
             border-bottom: 1px solid #f0f0f0; 
             font-size: 0.95rem;
+            vertical-align: middle;
+        }
+
+        .foto-lista {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #eee;
+            background: #fafafa;
+            flex-shrink: 0;
+        }
+
+        .col-func {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
         tr:nth-child(even) { background-color: #fafafa; }
         tr:hover { background-color: #f1f4f8; }
 
-        /* Estilo da Obra */
         .tag-obra { 
             background: #e3f2fd; 
             color: var(--primary); 
@@ -112,6 +185,19 @@
     <a href="index.html" class="btn-voltar">← Painel Principal</a>
     <h2>Relatório de Faltas</h2>
     
+    <!-- Nova Interface de Filtro por Período -->
+    <div class="filtro-container">
+        <div class="campo-filtro">
+            <label for="dataInicio">Data de Início:</label>
+            <input type="date" id="dataInicio">
+        </div>
+        <div class="campo-filtro">
+            <label for="dataFim">Data Final:</label>
+            <input type="date" id="dataFim">
+        </div>
+        <button class="btn-filtrar" onclick="carregarRelatorio()">Filtrar</button>
+    </div>
+    
     <div id="total" class="contador">Calculando faltas...</div>
 
     <div class="table-wrapper">
@@ -139,35 +225,51 @@
         const contador = document.getElementById('total');
         const loading = document.getElementById('loading');
         
+        // Pega os valores atuais dos inputs
+        const dataInicio = document.getElementById('dataInicio').value;
+        const dataFim = document.getElementById('dataFim').value;
+
+        // Limpa a tabela e exibe o carregamento ao filtrar novamente
+        tabela.innerHTML = "";
+        loading.style.display = 'block';
+        contador.innerText = "Filtrando registros...";
+
         try {
-            const res = await fetch(API_URL + "?tipo=relatorioFaltas");
+            // Constrói a URL injetando os parâmetros dinamicamente se estiverem preenchidos
+            let urlDestino = `${API_URL}?tipo=relatorioFaltas`;
+            if (dataInicio) urlDestino += `&dataInicio=${dataInicio}`;
+            if (dataFim) urlDestino += `&dataFim=${dataFim}`;
+
+            const res = await fetch(urlDestino);
             const faltas = await res.json();
             loading.style.display = 'none';
 
             if (!faltas || faltas.length === 0) {
-                tabela.innerHTML = "<tr><td colspan='3' style='text-align:center; padding: 30px; color: #999;'>Nenhuma falta registrada até o momento.</td></tr>";
+                tabela.innerHTML = "<tr><td colspan='3' style='text-align:center; padding: 30px; color: #999;'>Nenhuma falta registrada no período selecionado.</td></tr>";
                 contador.innerText = "Total: 0 faltas";
                 return;
             }
 
-            // Ordena por data (mais recente primeiro)
+            // Ordena colocando as datas mais recentes no topo
             faltas.sort((a, b) => new Date(b.data) - new Date(a.data));
-
-            contador.innerText = `Total Acumulado: ${faltas.length} faltas`;
+            contador.innerText = `Total Encontrado: ${faltas.length} faltas`;
 
             tabela.innerHTML = faltas.map(f => {
-                // Formatação robusta de data
                 let dataFormatada = "Data inválida";
                 if (f.data) {
                     const d = new Date(f.data);
-                    // Adiciona compensação de fuso horário se necessário ou usa toLocaleDateString
                     dataFormatada = d.toLocaleDateString('pt-BR', {timeZone: 'UTC'});
                 }
 
                 return `
                     <tr>
                         <td><strong>${dataFormatada}</strong></td>
-                        <td>${f.nome}</td>
+                        <td>
+                            <div class="col-func">
+                                <img src="${f.foto}" class="foto-lista" alt="Foto de ${f.nome}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
+                                <span>${f.nome}</span>
+                            </div>
+                        </td>
                         <td><span class="tag-obra">${f.obra || 'Geral / Não alocado'}</span></td>
                     </tr>
                 `;
@@ -177,9 +279,11 @@
             loading.style.display = 'none';
             tabela.innerHTML = "<tr><td colspan='3' style='text-align:center; color:red; padding: 20px;'>Erro ao carregar dados do Google Sheets.</td></tr>";
             contador.innerText = "Erro na conexão";
+            console.error(e);
         }
     }
 
+    // Carrega o relatório completo logo na abertura da página (sem filtros)
     carregarRelatorio();
 </script>
 </body>

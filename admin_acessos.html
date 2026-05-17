@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gerir Acessos - Administrador</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --success: #27ae60;
+            --bg: #f4f7f6;
+        }
+
+        body { 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+            background: var(--bg); 
+            margin: 0;
+            padding: 20px; 
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Alinha no topo para dar espaço à lista */
+            min-height: 100vh;
+        }
+        
+        .container-geral {
+            width: 100%;
+            max-width: 450px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .box { 
+            background: #fff; 
+            padding: 25px; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05); 
+            box-sizing: border-box;
+        }
+
+        h2 { color: var(--primary); text-align: center; margin-top: 0; font-size: 1.4rem; }
+        h3 { color: var(--primary); margin: 0 0 15px 0; font-size: 1.1rem; border-bottom: 2px solid #eee; padding-bottom: 5px; }
+        label { font-weight: 600; display: block; margin: 15px 0 8px; color: #444; font-size: 0.9rem; }
+        
+        input { 
+            width: 100%; 
+            padding: 14px; 
+            border: 2px solid #eee; 
+            border-radius: 10px; 
+            box-sizing: border-box; 
+            font-size: 16px; 
+            transition: border-color 0.3s;
+        }
+        input:focus { border-color: var(--primary); outline: none; }
+        
+        button { 
+            width: 100%; 
+            padding: 16px; 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            border-radius: 10px; 
+            font-weight: bold; 
+            font-size: 1rem;
+            cursor: pointer; 
+            margin-top: 25px; 
+            -webkit-tap-highlight-color: transparent;
+        }
+        button:active { transform: scale(0.98); background: #1a252f; }
+        button:disabled { background: #95a5a6; cursor: not-allowed; }
+
+        .btn-voltar { 
+            display: block; 
+            text-align: center; 
+            margin-top: 20px; 
+            text-decoration: none; 
+            color: #7f8c8d; 
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        /* ESTILOS DA LISTA DE ACESSOS ATIVOS */
+        .lista-acessos {
+            max-height: 300px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .acesso-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: #f9fbfb;
+            border: 1px solid #eef2f2;
+            border-radius: 8px;
+        }
+
+        .acesso-nome {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .acesso-senha {
+            background: #e8f8f5;
+            color: var(--success);
+            font-family: monospace;
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding: 4px 10px;
+            border-radius: 5px;
+        }
+
+        .carregando {
+            text-align: center;
+            color: #888;
+            font-style: italic;
+            font-size: 0.9rem;
+            padding: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-geral">
+    
+    <!-- BLOCO 1: CRIAR NOVO ACESSO -->
+    <div class="box">
+        <h2>Gerir Acessos</h2>
+        
+        <label for="nome-encarregado">Nome do Encarregado:</label>
+        <input type="text" id="nome-encarregado" placeholder="Ex: João Silva" autocomplete="off">
+        
+        <label for="novo-codigo">Código de Acesso (Senha):</label>
+        <input type="number" id="novo-codigo" placeholder="Ex: 5050" inputmode="numeric">
+
+        <button id="btn-salvar" onclick="gerarAcesso()">Salvar Acesso</button>
+        <a href="index.html" class="btn-voltar">← Voltar ao Painel</a>
+    </div>
+
+    <!-- BLOCO 2: LISTA DE ACESSOS JÁ EXISTENTES -->
+    <div class="box">
+        <h3>Acessos Ativos</h3>
+        <div id="lista-container" class="lista-acessos">
+            <p class="carregando">Carregando acessos ativos...</p>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxDYc3zZMgehcAwtVRbCUOqUjd4Ctem8i0W0f6iyFogFf02_Y9huXyiPNQInv1qSlUJ/exec";
+
+    // FUNÇÃO QUE BUSCA OS ACESSOS NA PLANILHA E EXIBE NA TELA
+    async function listarAcessosAtivos() {
+        const container = document.getElementById('lista-container');
+        
+        try {
+            // Reutiliza a URL chamando a rota de login modificada para listar ou adicionando parâmetro correto
+            const res = await fetch(API_URL + "?tipo=login&codigo=LISTAR_TODOS");
+            const acessos = await res.json();
+            
+            if (!acessos || acessos.length === 0) {
+                container.innerHTML = "<p class='carregando'>Nenhum encarregado cadastrado.</p>";
+                return;
+            }
+
+            container.innerHTML = acessos.map(a => `
+                <div class="acesso-item">
+                    <span class="acesso-nome">${a.nome}</span>
+                    <span class="acesso-senha">${a.codigo}</span>
+                </div>
+            `).join('');
+
+        } catch (e) {
+            container.innerHTML = "<p class='carregando' style='color: red;'>Erro ao carregar lista de acessos.</p>";
+            console.error(e);
+        }
+    }
+
+    async function gerarAcesso() {
+        const nomeInput = document.getElementById('nome-encarregado');
+        const codigoInput = document.getElementById('novo-codigo');
+        const btn = document.getElementById('btn-salvar');
+
+        const nome = nomeInput.value.trim();
+        const codigo = codigoInput.value.trim();
+
+        if (!nome || !codigo) return alert("Por favor, preencha todos os campos.");
+
+        btn.disabled = true;
+        btn.innerText = "Enviando...";
+
+        try {
+            await fetch(API_URL, {
+                method: "POST",
+                mode: "no-cors", 
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8"
+                },
+                body: JSON.stringify({
+                    sistema: 'criar_acesso',
+                    nomeEncarregado: nome,
+                    novoCodigo: codigo
+                })
+            });
+            
+            // Aguarda 1.5 segundos para dar tempo do Google salvar e recarrega a lista
+            setTimeout(() => {
+                alert("Acesso criado com sucesso!");
+                nomeInput.value = "";
+                codigoInput.value = "";
+                btn.disabled = false;
+                btn.innerText = "Salvar Acesso";
+                listarAcessosAtivos(); // Atualiza a lista automaticamente na tela
+            }, 1500);
+
+        } catch (e) {
+            alert("Erro ao salvar acesso.");
+            console.error(e);
+            btn.disabled = false;
+            btn.innerText = "Salvar Acesso";
+        }
+    }
+
+    // Inicializa a listagem assim que a página abre 
+    listarAcessosAtivos();
+</script>
+</body>
+</html>

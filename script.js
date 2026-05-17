@@ -79,28 +79,46 @@ async function verEquipe(nomeObra) {
 }
 
 async function cadastrarObra() {
-    const inputObra = document.getElementById('nome-obra-nova');
-    const nomeObra = inputObra.value.trim();
+        const input = document.getElementById('input-nova-obra');
+        const btn = document.getElementById('btn-salvar-obra');
+        const nome = input.value.trim();
 
-    if (!nomeObra) return alert("Por favor, digite o nome da obra.");
+        if (!nome) return alert("Por favor, digite o nome da obra.");
 
-    try {
-        await fetch(API_URL, {
-            method: "POST",
-            body: JSON.stringify({
-                sistema: 'criar_obra',
-                nomeObra: nomeObra
-            })
-        });
+        btn.disabled = true;
+        btn.innerText = "Salvando...";
 
-        alert("Obra cadastrada com sucesso!");
-        inputObra.value = ""; 
-        carregarObras(); 
-    } catch (error) {
-        console.error("Erro ao cadastrar:", error);
-        alert("Erro ao conectar com o servidor.");
+        try {
+            // Mudança para garantir que o Google Sheets processe o POST corretamente
+            await fetch(API_URL, {
+                method: "POST",
+                mode: "no-cors", // Mantido para evitar erro de CORS com Google Apps Script
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    sistema: 'criar_obra',
+                    nomeObra: nome
+                })
+            });
+
+            // Como no-cors não retorna resposta, limpamos e avisamos após o envio
+            input.value = "";
+            alert("Solicitação de cadastro enviada! Aguarde alguns segundos e a lista será atualizada.");
+            
+            // Pequeno delay para dar tempo do Google processar antes de recarregar a lista
+            setTimeout(() => {
+                carregarObras();
+                btn.disabled = false;
+                btn.innerText = "Salvar Obra";
+            }, 2000);
+
+        } catch (e) {
+            alert("Erro na conexão ao salvar.");
+            btn.disabled = false;
+            btn.innerText = "Salvar Obra";
+        }
     }
-}
 
 async function carregarObras() {
     const lista = document.getElementById('lista-obras-cadastradas');
